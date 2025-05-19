@@ -1,0 +1,8 @@
+{
+  "python.pythonPath": "./myenv/Scripts/python.exe", // Explicitly set the Python interpreter
+  "python.analysis.extraPaths": [
+      "./myenv/Lib/site-packages" // Add the virtual environment's site-packages
+  ],
+  "python.analysis.useLibraryCodeForTypes": true, // Enable type checking for installed libraries
+  "python.analysis.autoSearchPaths": true // Automatically search for paths
+}

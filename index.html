@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Video Classifier</title>
+    <style>
+        :root {
+            --primary: #4a6bff;
+            --primary-dark: #3a56cc;
+            --success: #28a745;
+            --gray: #f0f2f5;
+            --dark: #343a40;
+            --light: #f8f9fa;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--gray);
+            color: var(--dark);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 600px;
+            padding: 20px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            transition: all 0.3s ease;
+        }
+        
+        h1 {
+            text-align: center;
+            color: var(--primary);
+            margin-bottom: 24px;
+            font-weight: 600;
+        }
+        
+        .upload-area {
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            padding: 40px 20px;
+            text-align: center;
+            margin-bottom: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .upload-area:hover {
+            border-color: var(--primary);
+            background-color: rgba(74, 107, 255, 0.05);
+        }
+        
+        .upload-area.highlight {
+            border-color: var(--primary);
+            background-color: rgba(74, 107, 255, 0.1);
+        }
+        
+        .file-input {
+            display: none;
+        }
+        
+        .upload-icon {
+            font-size: 48px;
+            color: #ccc;
+            margin-bottom: 10px;
+        }
+        
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 12px 0;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            margin-top: 20px;
+        }
+        
+        .btn:hover {
+            background-color: var(--primary-dark);
+        }
+        
+        .btn:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .result-card {
+            background: var(--light);
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 24px;
+            text-align: center;
+            border-left: 4px solid var(--success);
+            display: none;
+        }
+        
+        .result-card.show {
+            display: block;
+            animation: fadeIn 0.5s;
+        }
+        
+        .prediction {
+            font-size: 22px;
+            font-weight: 600;
+            color: var(--success);
+            margin: 10px 0;
+        }
+        
+        .confidence {
+            font-size: 16px;
+            color: #666;
+        }
+        
+        .file-info {
+            display: flex;
+            align-items: center;
+            margin-top: 16px;
+            padding: 10px;
+            background-color: var(--light);
+            border-radius: 6px;
+            display: none;
+        }
+        
+        .file-info.show {
+            display: flex;
+        }
+        
+        .file-preview {
+            width: 80px;
+            height: 60px;
+            background-color: #000;
+            border-radius: 4px;
+            margin-right: 15px;
+            overflow: hidden;
+        }
+        
+        .file-preview video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .file-details {
+            flex: 1;
+        }
+        
+        .file-name {
+            font-weight: 500;
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 300px;
+        }
+        
+        .file-size {
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .clear-btn {
+            background: none;
+            border: none;
+            color: #999;
+            cursor: pointer;
+            font-size: 20px;
+            padding: 0 10px;
+        }
+        
+        .progress-container {
+            margin-top: 20px;
+            display: none;
+        }
+        
+        .progress-container.show {
+            display: block;
+        }
+        
+        .progress-bar {
+            height: 6px;
+            background-color: #eee;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        
+        .progress {
+            height: 100%;
+            background-color: var(--primary);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        .progress-text {
+            text-align: center;
+            font-size: 14px;
+            margin-top: 6px;
+            color: #666;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .footer {
+            margin-top: 30px;
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <h1>AI Video Classifier</h1>
+            
+            <form method="POST" enctype="multipart/form-data" id="uploadForm">
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-icon">📹</div>
+                    <p>Drag & drop your video file here or</p>
+                    <button type="button" class="btn" id="browseBtn" style="max-width: 200px; margin: 10px auto;">Browse Files</button>
+                    <p class="small" style="color: #666; font-size: 14px;">Supported formats: MP4, AVI, MOV (Max 100MB)</p>
+                    <input type="file" name="video" id="fileInput" class="file-input" accept="video/*" required />
+                </div>
+                
+                <div class="file-info" id="fileInfo">
+                    <div class="file-preview" id="videoPreview">
+                        <video id="videoElement" muted></video>
+                    </div>
+                    <div class="file-details">
+                        <div class="file-name" id="fileName">video.mp4</div>
+                        <div class="file-size" id="fileSize">0 MB</div>
+                    </div>
+                    <button type="button" class="clear-btn" id="clearBtn">×</button>
+                </div>
+                
+                <div class="progress-container" id="progressContainer">
+                    <div class="progress-bar">
+                        <div class="progress" id="progressBar"></div>
+                    </div>
+                    <div class="progress-text" id="progressText">Uploading: 0%</div>
+                </div>
+                
+                <button type="submit" class="btn" id="submitBtn" disabled>Analyze Video</button>
+            </form>
+            
+            <div class="result-card" id="resultCard">
+                <h3>Analysis Complete</h3>
+                <div class="prediction" id="predictionLabel">Action: Dancing</div>
+                <div class="confidence" id="confidenceScore">Confidence: 94%</div>
+                <button type="button" class="btn" id="newAnalysisBtn" style="margin-top: 20px; background-color: #6c757d;">Analyze Another Video</button>
+            </div>
+        </div>
+        
+        <div class="footer">
+            &copy; 2025 AI Video Classifier | Powered by Deep Learning
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const uploadArea = document.getElementById('uploadArea');
+            const fileInput = document.getElementById('fileInput');
+            const browseBtn = document.getElementById('browseBtn');
+            const submitBtn = document.getElementById('submitBtn');
+            const fileInfo = document.getElementById('fileInfo');
+            const fileName = document.getElementById('fileName');
+            const fileSize = document.getElementById('fileSize');
+            const clearBtn = document.getElementById('clearBtn');
+            const videoPreview = document.getElementById('videoPreview');
+            const videoElement = document.getElementById('videoElement');
+            const progressContainer = document.getElementById('progressContainer');
+            const progressBar = document.getElementById('progressBar');
+            const progressText = document.getElementById('progressText');
+            const resultCard = document.getElementById('resultCard');
+            const predictionLabel = document.getElementById('predictionLabel');
+            const confidenceScore = document.getElementById('confidenceScore');
+            const newAnalysisBtn = document.getElementById('newAnalysisBtn');
+            const uploadForm = document.getElementById('uploadForm');
+            
+            // Handle drag and drop events
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                uploadArea.addEventListener(eventName, preventDefaults, false);
+            });
+            
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            
+            ['dragenter', 'dragover'].forEach(eventName => {
+                uploadArea.addEventListener(eventName, highlight, false);
+            });
+            
+            ['dragleave', 'drop'].forEach(eventName => {
+                uploadArea.addEventListener(eventName, unhighlight, false);
+            });
+            
+            function highlight() {
+                uploadArea.classList.add('highlight');
+            }
+            
+            function unhighlight() {
+                uploadArea.classList.remove('highlight');
+            }
+            
+            // Handle file drop
+            uploadArea.addEventListener('drop', handleDrop, false);
+            
+            function handleDrop(e) {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+                
+                if (files.length > 0 && files[0].type.startsWith('video/')) {
+                    fileInput.files = files;
+                    handleFileSelect();
+                }
+            }
+            
+            // Handle file selection via button
+            browseBtn.addEventListener('click', function() {
+                fileInput.click();
+            });
+            
+            fileInput.addEventListener('change', handleFileSelect);
+            
+            function handleFileSelect() {
+                if (fileInput.files.length > 0) {
+                    const file = fileInput.files[0];
+                    
+                    // Check if file is a video
+                    if (!file.type.startsWith('video/')) {
+                        alert('Please select a valid video file');
+                        return;
+                    }
+                    
+                    // Check file size (100MB limit)
+                    if (file.size > 100 * 1024 * 1024) {
+                        alert('File is too large. Maximum size is 100MB');
+                        return;
+                    }
+                    
+                    // Display file info
+                    fileName.textContent = file.name;
+                    fileSize.textContent = formatSize(file.size);
+                    fileInfo.classList.add('show');
+                    
+                    // Create video preview
+                    const url = URL.createObjectURL(file);
+                    videoElement.src = url;
+                    videoElement.play();
+                    
+                    // Enable submit button
+                    submitBtn.disabled = false;
+                }
+            }
+            
+            // Clear selected file
+            clearBtn.addEventListener('click', function() {
+                fileInput.value = '';
+                fileInfo.classList.remove('show');
+                submitBtn.disabled = true;
+                URL.revokeObjectURL(videoElement.src);
+            });
+            
+            // Format file size
+            function formatSize(bytes) {
+                if (bytes < 1024) return bytes + ' bytes';
+                else if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+                else return (bytes / 1048576).toFixed(1) + ' MB';
+            }
+            
+            // Handle form submission
+            uploadForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                // Show progress indicator
+                progressContainer.classList.add('show');
+                
+                // Simulate upload progress (for demo)
+                let progress = 0;
+                const interval = setInterval(function() {
+                    progress += 5;
+                    progressBar.style.width = progress + '%';
+                    progressText.textContent = 'Processing: ' + progress + '%';
+                    
+                    if (progress >= 100) {
+                        clearInterval(interval);
+                        progressText.textContent = 'Analysis complete!';
+                        
+                        // Simulate server response after 1s
+                        setTimeout(showResults, 1000);
+                    }
+                }, 150);
+            });
+            
+            // Show prediction results
+            function showResults() {
+                // Hide the upload form
+                uploadArea.style.display = 'none';
+                fileInfo.classList.remove('show');
+                progressContainer.classList.remove('show');
+                submitBtn.style.display = 'none';
+                
+                // Show the results
+                resultCard.classList.add('show');
+                
+                // For demo purposes, show random prediction
+                const actions = ["ApplyEyeMakeup", "ApplyLipstick", "Archery", "BabyCrawling", "BalanceBeam"];
+                const randomAction = actions[Math.floor(Math.random() * actions.length)];
+                const confidence = Math.floor(80 + Math.random() * 19) + '%';
+                
+                predictionLabel.textContent = 'Action: ' + randomAction;
+                confidenceScore.textContent = 'Confidence: ' + confidence;
+            }
+            
+            // Start a new analysis
+            newAnalysisBtn.addEventListener('click', function() {
+                // Reset form
+                uploadArea.style.display = 'block';
+                submitBtn.style.display = 'block';
+                submitBtn.disabled = true;
+                resultCard.classList.remove('show');
+                fileInput.value = '';
+                
+                // Clear video
+                URL.revokeObjectURL(videoElement.src);
+            });
+        });
+    </script>
+</body>
+</html>
